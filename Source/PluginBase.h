@@ -165,6 +165,10 @@ public:
 
     bool hasEditor() const override { return true; }
 
+    const juce::String getName() const override { return displayName; }
+    bool acceptsMidi() const override { return false; }
+    bool producesMidi() const override { return false; }
+
     void getStateInformation (juce::MemoryBlock& dest) override
     {
         auto st = apvts.copyState();
