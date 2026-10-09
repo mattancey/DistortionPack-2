@@ -7,8 +7,9 @@ class GenericEditor : public juce::AudioProcessorEditor
 public:
     GenericEditor (juce::AudioProcessor& p,
                    juce::AudioProcessorValueTreeState& s,
+                   juce::String title,
                    juce::Colour accent)
-        : AudioProcessorEditor (&p), apvts (s), accentColour (accent)
+        : AudioProcessorEditor (&p), apvts (s), titleText (std::move (title)), accentColour (accent)
     {
         for (auto* param : p.getParameters())
         {
@@ -45,8 +46,7 @@ public:
         auto r = getLocalBounds().removeFromTop (30);
         g.setColour (accentColour);
         g.setFont (juce::Font (17.0f, juce::Font::bold));
-        g.drawText (getAudioProcessor()->getName(), r.reduced (12, 0),
-                    juce::Justification::centredLeft, false);
+        g.drawText (titleText, r.reduced (12, 0), juce::Justification::centredLeft, false);
     }
 
     void resized() override
@@ -66,6 +66,7 @@ public:
 
 private:
     juce::AudioProcessorValueTreeState& apvts;
+    juce::String titleText;
     juce::Colour accentColour;
     juce::OwnedArray<juce::Slider> sliders;
     juce::OwnedArray<juce::Label>  labels;
@@ -79,10 +80,11 @@ public:
                     juce::AudioProcessorValueTreeState::ParameterLayout layout,
                     juce::Colour accent,
                     int oversampleStages = 2)
-        : juce::AudioProcessor (name, BusesProperties()
+        : juce::AudioProcessor (BusesProperties()
               .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
               .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
           apvts (*this, nullptr, "PARAMS", std::move (layout)),
+          displayName (name),
           oversampling (2, (size_t) juce::jmax (1, oversampleStages),
                         juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR),
           accentColour (accent)
@@ -159,7 +161,7 @@ public:
     }
 
     juce::AudioProcessorEditor* createEditor() override
-    { return new GenericEditor (*this, apvts, accentColour); }
+    { return new GenericEditor (*this, apvts, displayName, accentColour); }
 
     bool hasEditor() const override { return true; }
 
@@ -187,8 +189,9 @@ public:
 protected:
     virtual float processSample (float x, int ch) = 0;
     virtual void  updateParams() {}
-    virtual void  reset() {}
+    void reset() override {}
 
+    juce::String displayName;
     double sampleRate = 44100.0;
     float  toneState[2] { 0.0f, 0.0f };
 
